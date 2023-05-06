@@ -16,6 +16,11 @@ Usage of sr:
   -r    reverse the order of items
 ```
 
+The result has the format as the following:
+```
+<parent_file_or_dir_name> <last_modified_date_of_parent_or_child> <the_number_of_children> <last_modified_child_name>
+```
+
 
 ## Examples of usage
 
