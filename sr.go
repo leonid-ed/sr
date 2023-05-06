@@ -78,7 +78,7 @@ func walkDir(currentDir string, parentDir string, maxLevel int, parentID int, wg
 }
 
 // sema is a counting semaphore for limiting concurrency in handleDir.
-var sema = make(chan struct{}, 10)
+var sema = make(chan struct{}, 4)
 
 // handleDir returns the entries of directory dir.
 func handleDir(dir string) []os.FileInfo {
@@ -154,7 +154,7 @@ loop:
 	for {
 		select {
 		case <-done:
-			// Drain fileMsgs to allow existing goroutinies to finish.
+			// Drain fileMsgs to allow existing goroutines to finish.
 			for range fileMsgs {
 				// Do nothing.
 			}

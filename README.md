@@ -1,9 +1,9 @@
 # sr - **s**how **r**ecent
 
-`sr` is a command line tool to show the most recently modified files and directories (taking into account subdirectories).
+`sr <dir>` is a command line tool to show you the most recently modified files and directories (taking into account subdirectories).
 
 `sr` traverses the given directory recursively, sorts files and subdirectories depending on their last
-modified dates of the files inside and shows you the results.
+modified dates of the files inside and shows you the result.
 
 ```bash
 $ sr -h
@@ -25,7 +25,7 @@ The result has the format as the following:
 ## Examples of usage
 
 ```bash
-$ sr
+$ sr .
 README.md  06 May 23 15:29 +0200  0   README.md
 .git/      06 May 23 15:28 +0200  26  .git/index
 LICENSE    06 May 23 15:26 +0200  0   LICENSE
