@@ -109,12 +109,13 @@ type Record struct {
 
 func main() {
 	// Parse flags.
-	var flagNoColors, flagReverse, flagJson, flagDigital bool
+	var flagNoColors, flagReverse, flagJson, flagDigital, flagUTC bool
 	var flagMaxLevel int
 	flag.BoolVar(&flagNoColors, "n", false, "turn colors off")
 	flag.BoolVar(&flagReverse, "r", false, "reverse the order of items")
 	flag.BoolVar(&flagJson, "j", false, "show results in json format")
 	flag.BoolVar(&flagDigital, "d", false, "show dates in digital format")
+	flag.BoolVar(&flagUTC, "u", false, "show time in UTC")
 	flag.IntVar(&flagMaxLevel, "L", -1, "the max depth of the directory tree; -1 if no depth limit")
 	flag.Parse()
 
@@ -186,17 +187,22 @@ loop:
 			}
 		}
 	}
-	printResults(records, flagNoColors, flagReverse, flagJson, flagDigital)
+	printResults(records, flagNoColors, flagReverse, flagJson, flagDigital, flagUTC)
 	// pprof.Lookup("goroutine").WriteTo(os.Stdout, 1)
 }
 
-func printResults(records map[int]Record, flagNoColors bool, flagReverse bool, flagJson bool, flagDigital bool) {
+func printResults(records map[int]Record, flagNoColors bool, flagReverse bool, flagJson bool, flagDigital bool, flagUTC bool) {
 	sliceRecords := make([]Record, 0, len(records))
 	for _, v := range records {
+		modifiedAt := v.LastModified
+		if flagUTC {
+			modifiedAt = modifiedAt.UTC()
+		}
+
 		if flagDigital {
-			v.LastModifiedString = v.LastModified.Format("2006-01-02T15:04:05-0700")
+			v.LastModifiedString = modifiedAt.Format("2006-01-02T15:04:05-0700")
 		} else {
-			v.LastModifiedString = v.LastModified.Format(time.RFC822Z)
+			v.LastModifiedString = modifiedAt.Format(time.RFC822Z)
 		}
 		sliceRecords = append(sliceRecords, v)
 	}
