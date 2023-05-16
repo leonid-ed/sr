@@ -9,11 +9,12 @@ modified dates of the files inside and shows you the result.
 $ sr -h
 Usage of sr:
   -L int
-        the max depth of the directory tree; -1 if no depth limit (default -1)
-  -d    show dates in digital format
-  -j    show results in json format
-  -n    turn colors off
-  -r    reverse the order of items
+    	the max depth of the directory tree; -1 if no depth limit (default -1)
+  -d	show dates in digital format
+  -j	show results in json format
+  -n	turn colors off
+  -r	reverse the order of items
+  -u	show time in UTC
 ```
 
 The result has the format as the following:
