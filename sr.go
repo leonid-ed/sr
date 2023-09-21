@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 
 	"sync"
 	"time"
@@ -25,6 +26,7 @@ var (
 	flagJson     bool
 	flagDigital  bool
 	flagUTC      bool
+	flagAll      bool
 )
 
 func cancelled() bool {
@@ -52,28 +54,35 @@ func walkDir(currentDir string, parentDir string, maxLevel int, parentID int, wg
 		return
 	}
 
-	for i, entry := range handleDir(currentDir) {
+	numParents := 0
+	for _, entry := range handleDir(currentDir) {
 		newParentID := parentID
+		entryName := entry.Name()
+
+		if strings.HasPrefix(entryName, ".") && !flagAll {
+			continue
+		}
 
 		msg := fileMsg{
 			parentID:     newParentID,
-			filename:     filepath.Join(parentDir, entry.Name()),
+			filename:     filepath.Join(parentDir, entryName),
 			isDir:        entry.IsDir(),
 			lastModified: entry.ModTime()}
 
 		if parentID == 0 {
-			msg.filename = entry.Name()
+			msg.filename = entryName
 			fileMsgs <- msg
 
+			numParents++
 			if !entry.IsDir() {
 				continue
 			}
-			newParentID = i + 1
+			newParentID = numParents
 		}
 
 		if entry.IsDir() {
-			newCurrentDir := filepath.Join(currentDir, entry.Name())
-			newParentDir := filepath.Join(parentDir, entry.Name())
+			newCurrentDir := filepath.Join(currentDir, entryName)
+			newParentDir := filepath.Join(parentDir, entryName)
 			if maxLevel != 0 {
 				wg.Add(1)
 				walkDir(newCurrentDir, newParentDir, maxLevel-1, newParentID, wg, fileMsgs)
@@ -122,6 +131,7 @@ func main() {
 	flag.BoolVar(&flagJson, "j", false, "show results in json format")
 	flag.BoolVar(&flagDigital, "d", false, "show dates in digital format")
 	flag.BoolVar(&flagUTC, "u", false, "show time in UTC")
+	flag.BoolVar(&flagAll, "a", false, "show all files and directories (including hidden ones)")
 	flag.IntVar(&flagMaxLevel, "L", -1, "the max depth of the directory tree; -1 if no depth limit")
 	flag.Parse()
 
@@ -182,7 +192,7 @@ loop:
 			} else {
 				el, ok := records[msg.parentID]
 				if !ok {
-					log.Fatalf("unknown parentID (%d), %v\n", msg.parentID, records)
+					log.Fatalf("unknown parentID (%d) (filename: %v, records: %v)\n", msg.parentID, msg.filename, records)
 				}
 				el.NumChildren++
 				if el.NumChildren == 1 || el.LastModified.Before(msg.lastModified) {
