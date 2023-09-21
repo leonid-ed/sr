@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 	"sort"
 
-	// "runtime/pprof"
 	"sync"
 	"time"
 
@@ -18,7 +17,15 @@ import (
 	"github.com/logrusorgru/aurora/v3"
 )
 
-var done = make(chan struct{})
+var (
+	done = make(chan struct{})
+
+	flagNoColors bool
+	flagReverse  bool
+	flagJson     bool
+	flagDigital  bool
+	flagUTC      bool
+)
 
 func cancelled() bool {
 	select {
@@ -109,7 +116,6 @@ type Record struct {
 
 func main() {
 	// Parse flags.
-	var flagNoColors, flagReverse, flagJson, flagDigital, flagUTC bool
 	var flagMaxLevel int
 	flag.BoolVar(&flagNoColors, "n", false, "turn colors off")
 	flag.BoolVar(&flagReverse, "r", false, "reverse the order of items")
@@ -187,11 +193,10 @@ loop:
 			}
 		}
 	}
-	printResults(records, flagNoColors, flagReverse, flagJson, flagDigital, flagUTC)
-	// pprof.Lookup("goroutine").WriteTo(os.Stdout, 1)
+	printResults(records)
 }
 
-func printResults(records map[int]Record, flagNoColors bool, flagReverse bool, flagJson bool, flagDigital bool, flagUTC bool) {
+func printResults(records map[int]Record) {
 	sliceRecords := make([]Record, 0, len(records))
 	for _, v := range records {
 		modifiedAt := v.LastModified
