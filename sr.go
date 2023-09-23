@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io/fs"
 	"log"
 	"os"
 	"path/filepath"
@@ -106,12 +106,20 @@ func handleDir(dir string) []os.FileInfo {
 
 	defer func() { <-sema }() // release token
 
-	entries, err := ioutil.ReadDir(dir)
+	dirEntries, err := os.ReadDir(dir)
 	if err != nil {
 		log.Fatalf("cannot read the dir '%s': %v\n", dir, err)
-		return nil
 	}
-	return entries
+	fileInfos := make([]fs.FileInfo, 0, len(dirEntries))
+	for _, entry := range dirEntries {
+		info, err := entry.Info()
+		if err != nil {
+			log.Fatalf("cannot read the FileInfo entry '%s': %v\n", entry.Name(), err)
+		}
+		fileInfos = append(fileInfos, info)
+	}
+
+	return fileInfos
 }
 
 type Record struct {
