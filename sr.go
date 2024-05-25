@@ -16,6 +16,7 @@ import (
 
 	"github.com/cheynewallace/tabby"
 	"github.com/logrusorgru/aurora/v3"
+	"github.com/xeonx/timeago"
 )
 
 var (
@@ -25,6 +26,7 @@ var (
 	flagReverse  bool
 	flagJson     bool
 	flagDigital  bool
+	flagFuzzy    bool
 	flagUTC      bool
 	flagAll      bool
 )
@@ -138,6 +140,7 @@ func main() {
 	flag.BoolVar(&flagReverse, "r", false, "reverse the order of items")
 	flag.BoolVar(&flagJson, "j", false, "show results in json format")
 	flag.BoolVar(&flagDigital, "d", false, "show dates in digital format")
+	flag.BoolVar(&flagFuzzy, "f", false, "show dates in fuzzy format (e.g. '12 minutes ago')")
 	flag.BoolVar(&flagUTC, "u", false, "show time in UTC")
 	flag.BoolVar(&flagAll, "a", false, "show all files and directories (including hidden ones)")
 	flag.IntVar(&flagMaxLevel, "L", -1, "the max depth of the directory tree; -1 if no depth limit")
@@ -215,6 +218,23 @@ loop:
 }
 
 func printResults(records map[int]Record) {
+	if len(records) == 0 {
+		return
+	}
+
+	dateFormat := time.RFC822Z
+	if flagDigital {
+		dateFormat = "2006-01-02T15:04:05-0700"
+	}
+
+	// Setup shorter forms of timeago values.
+	timeagoFormat := timeago.English
+	timeagoFormat.DefaultLayout = dateFormat
+	timeagoFormat.Periods[0].One = "a second"
+	timeagoFormat.Periods[1].One = "a minute"
+	timeagoFormat.Periods[2].One = "an hour"
+	timeagoFormat.Max = 24 * 365 * 2 * time.Hour
+
 	sliceRecords := make([]Record, 0, len(records))
 	for _, v := range records {
 		modifiedAt := v.LastModified
@@ -222,11 +242,12 @@ func printResults(records map[int]Record) {
 			modifiedAt = modifiedAt.UTC()
 		}
 
-		if flagDigital {
-			v.LastModifiedString = modifiedAt.Format("2006-01-02T15:04:05-0700")
+		if flagFuzzy {
+			v.LastModifiedString = timeagoFormat.Format(modifiedAt)
 		} else {
-			v.LastModifiedString = modifiedAt.Format(time.RFC822Z)
+			v.LastModifiedString = modifiedAt.Format(dateFormat)
 		}
+
 		sliceRecords = append(sliceRecords, v)
 	}
 

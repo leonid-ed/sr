@@ -12,6 +12,7 @@ Usage of sr:
         the max depth of the directory tree; -1 if no depth limit (default -1)
   -a    show all files and directories (including hidden ones)
   -d    show dates in digital format
+  -f    show dates in fuzzy format (e.g. '12 minutes ago')
   -j    show results in json format
   -n    turn colors off
   -r    reverse the order of items
@@ -41,6 +42,14 @@ sr.go      21 Sep 23 21:52 +0200  0   sr.go
 LICENSE    06 May 23 15:26 +0200  0   LICENSE
 go.mod     16 Apr 23 20:44 +0200  0   go.mod
 go.sum     16 Apr 23 20:30 +0200  0   go.sum
+
+$ sr -f
+README.md  30 seconds ago         0  README.md
+sr.go      4 minutes ago          0  sr.go
+sr         7 minutes ago          0  sr
+go.mod     12 minutes ago         0  go.mod
+go.sum     12 minutes ago         0  go.sum
+LICENSE    06 May 23 15:26 +0200  0  LICENSE
 
 $ sr -d
 README.md  2023-09-21T21:54:27+0200  0  README.md
