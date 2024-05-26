@@ -160,7 +160,7 @@ func main() {
 
 	// Cancel traversal when input is detected.
 	go func() {
-		os.Stdin.Read(make([]byte, 1)) // read a single byte
+		_, _ = os.Stdin.Read(make([]byte, 1)) // read a single byte
 		close(done)
 		fmt.Println("Cancelled!")
 	}()
@@ -176,7 +176,7 @@ func main() {
 		close(fileMsgs)
 	}()
 
-	records := make(map[int]Record)
+	records := make(map[int]*Record)
 	currentParentID := 0
 loop:
 	for {
@@ -199,11 +199,12 @@ loop:
 					ChildName:    msg.filename,
 					LastModified: msg.lastModified}
 
-				records[currentParentID] = record
+				records[currentParentID] = &record
 			} else {
 				el, ok := records[msg.parentID]
 				if !ok {
-					log.Fatalf("unknown parentID (%d) (filename: %v, records: %v)\n", msg.parentID, msg.filename, records)
+					log.Fatalf("unknown parentID (%d) (filename: %v, records: %v)\n",
+						msg.parentID, msg.filename, records)
 				}
 				el.NumChildren++
 				if el.NumChildren == 1 || el.LastModified.Before(msg.lastModified) {
@@ -217,7 +218,7 @@ loop:
 	printResults(records)
 }
 
-func printResults(records map[int]Record) {
+func printResults(records map[int]*Record) {
 	if len(records) == 0 {
 		return
 	}
@@ -235,7 +236,7 @@ func printResults(records map[int]Record) {
 	timeagoFormat.Periods[2].One = "an hour"
 	timeagoFormat.Max = 24 * 365 * 2 * time.Hour
 
-	sliceRecords := make([]Record, 0, len(records))
+	sliceRecords := make([]*Record, 0, len(records))
 	for _, v := range records {
 		modifiedAt := v.LastModified
 		if flagUTC {
