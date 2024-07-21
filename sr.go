@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"io/fs"
-	"log"
 	"os"
 	"path/filepath"
 	"sort"
@@ -17,6 +16,12 @@ import (
 	"github.com/cheynewallace/tabby"
 	"github.com/logrusorgru/aurora/v3"
 	"github.com/xeonx/timeago"
+)
+
+const (
+	digitalDateFormat  = "2006-01-02T15:04:05-0700"
+	maxParallelWorkers = 4
+	initNumRecords     = 128
 )
 
 var (
@@ -96,7 +101,7 @@ func walkDir(currentDir string, parentDir string, maxLevel int, parentID int, wg
 }
 
 // sema is a counting semaphore for limiting concurrency in handleDir.
-var sema = make(chan struct{}, 4)
+var sema = make(chan struct{}, maxParallelWorkers)
 
 // handleDir returns the entries of directory dir.
 func handleDir(dir string) []os.FileInfo {
@@ -110,13 +115,16 @@ func handleDir(dir string) []os.FileInfo {
 
 	dirEntries, err := os.ReadDir(dir)
 	if err != nil {
-		log.Fatalf("cannot read the dir '%s': %v\n", dir, err)
+		fmt.Fprintf(os.Stderr, "Error: cannot read the dir '%s': %v\n", dir, err)
+		return nil
 	}
 	fileInfos := make([]fs.FileInfo, 0, len(dirEntries))
 	for _, entry := range dirEntries {
 		info, err := entry.Info()
 		if err != nil {
-			log.Fatalf("cannot read the FileInfo entry '%s': %v\n", entry.Name(), err)
+			fmt.Fprintf(os.Stderr, "Error: cannot read FileInfo entry '%s' in the dir '%s': %v\n",
+				entry.Name(), dir, err)
+			return nil
 		}
 		fileInfos = append(fileInfos, info)
 	}
@@ -162,7 +170,7 @@ func main() {
 	go func() {
 		_, _ = os.Stdin.Read(make([]byte, 1)) // read a single byte
 		close(done)
-		fmt.Println("Cancelled!")
+		fmt.Fprintf(os.Stderr, "Cancelled!\n")
 	}()
 
 	// Traverse the file tree in parallel.
@@ -176,7 +184,7 @@ func main() {
 		close(fileMsgs)
 	}()
 
-	records := make(map[int]*Record)
+	records := make(map[int]*Record, initNumRecords)
 	currentParentID := 0
 loop:
 	for {
@@ -203,8 +211,9 @@ loop:
 			} else {
 				el, ok := records[msg.parentID]
 				if !ok {
-					log.Fatalf("unknown parentID (%d) (filename: %v, records: %v)\n",
+					fmt.Fprintf(os.Stderr, "Error: unknown parentID (%d) (filename: %v, records: %v)\n",
 						msg.parentID, msg.filename, records)
+					return
 				}
 				el.NumChildren++
 				if el.NumChildren == 1 || el.LastModified.Before(msg.lastModified) {
@@ -225,7 +234,7 @@ func printResults(records map[int]*Record) {
 
 	dateFormat := time.RFC822Z
 	if flagDigital {
-		dateFormat = "2006-01-02T15:04:05-0700"
+		dateFormat = digitalDateFormat
 	}
 
 	// Setup shorter forms of timeago values.
@@ -264,9 +273,10 @@ func printResults(records map[int]*Record) {
 	if flagJson {
 		jsonString, err := json.Marshal(sliceRecords)
 		if err != nil {
-			log.Fatalf("cannot marshall: %v\n", err)
+			fmt.Fprintf(os.Stderr, "Error: cannot make json: %v\n", err)
+			return
 		}
-		fmt.Printf("%s\n", jsonString)
+		fmt.Println(string(jsonString))
 	} else {
 		t := tabby.New()
 		var outputName, pathSeparator string
